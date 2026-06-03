@@ -1,3 +1,4 @@
+
 # Python
 __pycache__/
 .venv/
@@ -12,3 +13,4 @@ __pycache__/
 # Data and models (too large, reproducible)
 data/
 models/*.swp
+.pkl
