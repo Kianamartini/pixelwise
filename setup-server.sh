@@ -6,6 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 sudo apt update
 sudo apt install -y git python3 python3-pip python3-venv curl
 sudo apt install -y postgresql
+sudo apt install -y postgresql-client-common
 
 # Pull the pinned model artefact
 if [ -f .env ]; then
