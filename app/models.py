@@ -17,6 +17,7 @@ class Prediction(Base):
     id = Column(Integer, primary_key=True)
     prediction = Column(String, nullable=False)
     confidence = Column(Float, nullable=False)
+    client_ip = Column(String)
     model_version = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 

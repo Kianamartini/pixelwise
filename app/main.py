@@ -74,6 +74,7 @@ def classify(request: Request, req: ClassifyRequest):
         Prediction(
             prediction=result["prediction"],
             confidence=result["confidence"],
+            client_ip=request.client.host,
             model_version="v1"
         )
     )
