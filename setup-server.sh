@@ -53,3 +53,13 @@ if command -v psql >/dev/null 2>&1 && \
         | grep -q 1 || \
         sudo -u postgres createdb -O pixelwise pixelwise
 fi
+
+if [ -d "$SCRIPT_DIR/.venv" ] && \
+   [ -f "$SCRIPT_DIR/requirements.txt" ]; then
+    source "$SCRIPT_DIR/.venv/bin/activate"
+    pip install -r "$SCRIPT_DIR/requirements.txt"
+fi
+
+if [ -f "$SCRIPT_DIR/init_db.py" ]; then
+    (cd "$SCRIPT_DIR" && python init_db.py)
+fi
