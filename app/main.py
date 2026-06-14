@@ -51,32 +51,34 @@ def results():
                 "prediction": r.prediction,
                 "confidence": r.confidence,
                 "model_version": r.model_version,
-                "created_at": r.created_at.isoformat(),
+                "created_at": r.created_at.isoformat()
             }
             for r in rows
         ]
     }
 
 
-@app.post("/classify",
-	response_model=ClassifyResponse,
-	dependencies=[Depends(verify_api_key)])
+
+@app.post(
+    "/classify",
+    response_model=ClassifyResponse,
+    dependencies=[Depends(verify_api_key)]
+)
 @limiter.limit("30/minute")
-def classify(request: Request,
-		req: ClassifyRequest):
-	arr = np.array(req.pixels,
-			dtype=np.uint8)[np.newaxis]
-	result = classify_batch(arr)[0]
+def classify(request: Request, req: ClassifyRequest):
+    arr = np.array(req.pixels, dtype=np.uint8)[np.newaxis]
+    result = classify_batch(arr)[0]
 
- 	db = SessionLocal()
-    	db.add(
-        	Prediction(
-            	prediction=result["prediction"],
-            	confidence=result["confidence"],
-            	model_version="v1"
-        	)
-    	)
-    	db.commit()
-    	db.close()
+    db = SessionLocal()
+    db.add(
+        Prediction(
+            prediction=result["prediction"],
+            confidence=result["confidence"],
+            model_version="v1"
+        )
+    )
+    db.commit()
+    db.close()
 
-	return result
+    return result
+
