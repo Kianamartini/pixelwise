@@ -1,0 +1,7 @@
+playbook.yml
+  1:1       warning  missing document start "---"  (document-start)
+  22:81     error    line too long (90 > 80 characters)  (line-length)
+  29:81     error    line too long (96 > 80 characters)  (line-length)
+  35:81     error    line too long (93 > 80 characters)  (line-length)
+  146:81    error    line too long (99 > 80 characters)  (line-length)
+

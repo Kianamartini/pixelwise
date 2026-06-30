@@ -1,0 +1,95 @@
+
+PLAY [Provision PixelWise hosts] ***********************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [prod]
+
+TASK [Install system packages] *************************************************
+ok: [prod]
+
+TASK [Check if the pixelwise Postgres role exists] *****************************
+ok: [prod]
+
+TASK [Create the pixelwise Postgres role] **************************************
+skipping: [prod]
+
+TASK [Check if the pixelwise database exists] **********************************
+ok: [prod]
+
+TASK [Create the pixelwise database] *******************************************
+skipping: [prod]
+
+TASK [Ensure the models directory exists] **************************************
+ok: [prod]
+
+TASK [Clean any stale /tmp/pixelwise-model from a previous run] ****************
+ok: [prod]
+
+TASK [Clone the pinned model artefact repository] ******************************
+changed: [prod]
+
+TASK [Find the .pkl files in the cloned artefact] ******************************
+ok: [prod]
+
+TASK [Copy the .pkl model files into the project models directory] *************
+ok: [prod] => (item={'path': '/tmp/pixelwise-model/digit_classifier_v1.pkl', 'mode': '0664', 'isdir': False, 'ischr': False, 'isblk': False, 'isreg': True, 'isfifo': False, 'islnk': False, 'issock': False, 'uid': 1000, 'gid': 1000, 'size': 57585, 'inode': 413706, 'dev': 64512, 'nlink': 1, 'atime': 1782828666.3853452, 'mtime': 1782828665.0233264, 'ctime': 1782828665.0233264, 'gr_name': 'produser', 'pw_name': 'produser', 'wusr': True, 'rusr': True, 'xusr': False, 'wgrp': True, 'rgrp': True, 'xgrp': False, 'woth': False, 'roth': True, 'xoth': False, 'isuid': False, 'isgid': False})
+
+TASK [Copy the MODELCARD.md into the project models directory] *****************
+ok: [prod]
+
+TASK [Clean up the temporary model clone] **************************************
+changed: [prod]
+
+TASK [Install the PixelWise systemd unit] **************************************
+ok: [prod]
+
+TASK [Ensure PixelWise service is enabled and started] *************************
+ok: [prod]
+
+TASK [Ensure Python virtual environment exists] ********************************
+ok: [prod]
+
+TASK [Install Python dependencies into the venv] *******************************
+ok: [prod]
+
+TASK [Initialize the database schema] ******************************************
+ok: [prod]
+
+TASK [Ensure the Nginx web root exists] ****************************************
+ok: [prod]
+
+TASK [Find frontend files to deploy] *******************************************
+ok: [prod]
+
+TASK [Copy frontend files to the Nginx web root] *******************************
+ok: [prod] => (item={'path': '/opt/pixelwise/frontend/style.css', 'mode': '0664', 'isdir': False, 'ischr': False, 'isblk': False, 'isreg': True, 'isfifo': False, 'islnk': False, 'issock': False, 'uid': 1000, 'gid': 1000, 'size': 412, 'inode': 58243, 'dev': 64512, 'nlink': 1, 'atime': 1782828150.5182421, 'mtime': 1781442991.1756628, 'ctime': 1781442991.1756628, 'gr_name': 'produser', 'pw_name': 'produser', 'wusr': True, 'rusr': True, 'xusr': False, 'wgrp': True, 'rgrp': True, 'xgrp': False, 'woth': False, 'roth': True, 'xoth': False, 'isuid': False, 'isgid': False})
+changed: [prod] => (item={'path': '/opt/pixelwise/frontend/app.js', 'mode': '0664', 'isdir': False, 'ischr': False, 'isblk': False, 'isreg': True, 'isfifo': False, 'islnk': False, 'issock': False, 'uid': 1000, 'gid': 1000, 'size': 2930, 'inode': 58241, 'dev': 64512, 'nlink': 1, 'atime': 1782828151.2522264, 'mtime': 1781442991.1746626, 'ctime': 1781442991.1746626, 'gr_name': 'produser', 'pw_name': 'produser', 'wusr': True, 'rusr': True, 'xusr': False, 'wgrp': True, 'rgrp': True, 'xgrp': False, 'woth': False, 'roth': True, 'xoth': False, 'isuid': False, 'isgid': False})
+ok: [prod] => (item={'path': '/opt/pixelwise/frontend/index.html', 'mode': '0664', 'isdir': False, 'ischr': False, 'isblk': False, 'isreg': True, 'isfifo': False, 'islnk': False, 'issock': False, 'uid': 1000, 'gid': 1000, 'size': 552, 'inode': 58242, 'dev': 64512, 'nlink': 1, 'atime': 1782828151.9912112, 'mtime': 1781442991.1756628, 'ctime': 1781442991.1756628, 'gr_name': 'produser', 'pw_name': 'produser', 'wusr': True, 'rusr': True, 'xusr': False, 'wgrp': True, 'rgrp': True, 'xgrp': False, 'woth': False, 'roth': True, 'xoth': False, 'isuid': False, 'isgid': False})
+
+TASK [Substitute the API key into app.js] **************************************
+changed: [prod]
+
+TASK [Install the Nginx site configuration] ************************************
+ok: [prod]
+
+TASK [Enable the PixelWise Nginx site] *****************************************
+changed: [prod]
+
+TASK [Remove the default Nginx site] *******************************************
+ok: [prod]
+
+TASK [Install the auto-deploy systemd service unit] ****************************
+ok: [prod]
+
+TASK [Install the auto-deploy systemd timer unit] ******************************
+ok: [prod]
+
+TASK [Ensure the auto-deploy timer is enabled and started] *********************
+ok: [prod]
+
+RUNNING HANDLER [Reload Nginx] *************************************************
+changed: [prod]
+
+PLAY RECAP *********************************************************************
+prod                       : ok=27   changed=6    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0   
+
