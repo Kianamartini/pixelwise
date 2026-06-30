@@ -1,0 +1,216 @@
+- name: Provision PixelWise hosts
+  hosts: pixelwise
+  become: true
+  tasks:
+    - name: Install system packages
+      ansible.builtin.apt:
+        name:
+          - git
+          - python3
+          - python3-pip
+          - python3-venv
+          - curl
+          - postgresql
+          - postgresql-client-common
+          - python3-psycopg2
+          - nginx
+        state: present
+        update_cache: true
+
+    - name: Check if the pixelwise Postgres role exists
+      ansible.builtin.command:
+        cmd: sudo -u postgres psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='pixelwise'"
+      register: pixelwise_role_check
+      changed_when: false
+      failed_when: false
+
+    - name: Create the pixelwise Postgres role
+      ansible.builtin.command:
+        cmd: sudo -u postgres psql -c "CREATE USER pixelwise WITH PASSWORD '{{ db_password }}';"
+      when: pixelwise_role_check.stdout != "1"
+      no_log: true
+
+    - name: Check if the pixelwise database exists
+      ansible.builtin.command:
+        cmd: sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='pixelwise'"
+      register: pixelwise_db_check
+      changed_when: false
+      failed_when: false
+
+    - name: Create the pixelwise database
+      ansible.builtin.command:
+        cmd: sudo -u postgres createdb -O pixelwise pixelwise
+      when: pixelwise_db_check.stdout != "1"
+
+    - name: Ensure the models directory exists
+      ansible.builtin.file:
+        path: /home/produser/pixelwise/models
+        state: directory
+        owner: produser
+        group: produser
+        mode: "0755"
+
+    - name: Clean any stale /tmp/pixelwise-model from a previous run
+      ansible.builtin.file:
+        path: /tmp/pixelwise-model
+        state: absent
+
+    - name: Clone the pinned model artefact repository
+      ansible.builtin.git:
+        repo: "{{ model_repo }}"
+        dest: /tmp/pixelwise-model
+        version: "{{ model_version }}"
+        depth: 1
+      become: false
+
+    - name: Find the .pkl files in the cloned artefact
+      ansible.builtin.find:
+        paths: /tmp/pixelwise-model
+        patterns: "*.pkl"
+      register: model_pkl_files
+
+    - name: Copy the .pkl model files into the project models directory
+      ansible.builtin.copy:
+        src: "{{ item.path }}"
+        dest: /opt/produser/pixelwise/models/
+        remote_src: true
+        owner: produser
+        group: produser
+        mode: "0644"
+      loop: "{{ model_pkl_files.files }}"
+
+    - name: Copy the MODELCARD.md into the project models directory
+      ansible.builtin.copy:
+        src: /tmp/pixelwise-model/MODELCARD.md
+        dest: /opt/produser/pixelwise/models/MODELCARD.md
+        remote_src: true
+        owner: produser
+        group: produser
+        mode: "0644"
+
+    - name: Clean up the temporary model clone
+      ansible.builtin.file:
+        path: /tmp/pixelwise-model
+        state: absent
+
+    - name: Install the PixelWise systemd unit
+      ansible.builtin.copy:
+        src: /opt/pixelwise/deploy/pixelwise.service
+        dest: /etc/systemd/system/pixelwise.service
+        remote_src: true
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Reload systemd
+
+    - name: Ensure PixelWise service is enabled and started
+      ansible.builtin.systemd:
+        name: pixelwise
+        enabled: true
+        state: started
+
+    - name: Ensure Python virtual environment exists
+      ansible.builtin.command:
+        cmd: python3 -m venv /opt/pixelwise/.venv
+        creates: /opt/pixelwise/.venv/bin/activate
+
+    - name: Install Python dependencies into the venv
+      ansible.builtin.pip:
+        requirements: /opt/pixelwise/requirements.txt
+        virtualenv: /opt/pixelwise/.venv
+
+    - name: Initialize the database schema
+      ansible.builtin.command:
+        cmd: /opt/pixelwise/.venv/bin/python init_db.py
+        chdir: /opt/pixelwise
+      changed_when: false
+
+
+    - name: Ensure the Nginx web root exists
+      ansible.builtin.file:
+        path: /var/www/pixelwise
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Find frontend files to deploy
+      ansible.builtin.find:
+        paths: /opt/pixelwise/frontend
+        recurse: true
+      register: frontend_files
+
+    - name: Copy frontend files to the Nginx web root
+      ansible.builtin.copy:
+        src: "{{ item.path }}"
+        dest: "/var/www/pixelwise/{{ item.path | regex_replace('^/opt/pixelwise/frontend/', '') }}"
+        remote_src: true
+        owner: root
+        group: root
+        mode: "0644"
+      loop: "{{ frontend_files.files }}"
+
+    - name: Substitute the API key into app.js
+      ansible.builtin.replace:
+        path: /var/www/pixelwise/app.js
+        regexp: "REPLACE_ME"
+        replace: "{{ secret_api_key }}"
+
+    - name: Install the Nginx site configuration
+      ansible.builtin.copy:
+        src: /opt/pixelwise/deploy/pixelwise.nginx
+        dest: /etc/nginx/sites-available/pixelwise
+        remote_src: true
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Reload Nginx
+
+    - name: Enable the PixelWise Nginx site
+      ansible.builtin.file:
+        src: /etc/nginx/sites-available/pixelwise
+        dest: /etc/nginx/sites-enabled/pixelwise
+        state: link
+      notify: Reload Nginx
+
+    - name: Remove the default Nginx site
+      ansible.builtin.file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+      notify: Reload Nginx
+
+    - name: Install the auto-deploy systemd service unit
+      ansible.builtin.copy:
+        src: /opt/pixelwise/deploy/systemd/pixelwise-deploy.service
+        dest: /etc/systemd/system/pixelwise-deploy.service
+        remote_src: true
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Reload systemd
+
+    - name: Install the auto-deploy systemd timer unit
+      ansible.builtin.copy:
+        src: /opt/pixelwise/deploy/systemd/pixelwise-deploy.timer
+        dest: /etc/systemd/system/pixelwise-deploy.timer
+        remote_src: true
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Reload systemd
+
+    - name: Ensure the auto-deploy timer is enabled and started
+      ansible.builtin.systemd:
+        name: pixelwise-deploy.timer
+        enabled: true
+        state: started
+
+
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true
+    - name: Reload Nginx
+      ansible.builtin.service:
+        name: nginx
+        state: reloaded
